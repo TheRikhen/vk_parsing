@@ -6,9 +6,12 @@ import matplotlib.pyplot as plt
 import datetime
 import csv
 import ast
+from sklearn import datasets
+from sklearn.cluster import KMeans
+import pandas as pd
 
 self_id, friends_id, friends_friends_id, friends_friends_id_dict = None, [], [], {}
-G = nx.DiGraph
+G = nx.Graph()
 
 
 def get_self_id(vk_api):
@@ -39,13 +42,11 @@ def get_friends_of_friends(vk_api):
 
 
 def building_graph():
-    G.add_node(self_id, level=1)
-    for friends in friends_id:
-        G.add_edge(self_id, friends)
-    read_friends_friends_dict()
+    global G
+    fill_graph()
 
-    plt.figure(figsize=(80, 80))
-    nx.draw_networkx(G)
+    plt.figure(figsize=(50, 50))
+    nx.draw_networkx(G, with_labels=False)
     plt.show()
 
 
@@ -76,47 +77,64 @@ def get_info(vk_api, user):
         pass
 
 
-def write_friends_friends_dict():
-    with open('dict.csv', 'w') as csv_file:
+def write_users_dict():
+    with open('users_dict.csv', 'w') as csv_file:
         writer = csv.writer(csv_file)
         for key, value in friends_friends_id_dict.items():
             writer.writerow([key, value])
 
 
-def write_friends_friends_info(friends_inf):
-    with open('friends_friends_info.csv', 'a+', newline='') as csv_file:
+def write_users_info(friends_inf):
+    with open('users_info.csv', 'a+', newline='') as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow(friends_inf)
 
 
-def read_friends_friends_dict():
+def fill_graph():
     global G
-    infile = csv.reader(open('dict.csv', 'r'))
+    infile = csv.reader(open('users_dict.csv', 'r'))
     for row in infile:
-        for friend in friends_id:
-            print(friend)
-            if row[0] == str(friend):
-                x = ast.literal_eval(row[1])
-                print(x)
-                for i in x:
-                    print(i)
-                    G.add_edge(friend, i)
+        x = ast.literal_eval(row[1])
+        for i in x:
+            G.add_nodes_from([row[0], i])
+            G.add_edge(row[0], i)
+
+
+def k_mean():
+    # Загружаем набор данных
+    seeds_df = pd.read_csv(
+        "users_info.csv")
+    varieties = list(seeds_df)
+    # Описываем модель
+    model = KMeans(n_clusters=7)
+    # Проводим моделирование
+    print(varieties)
+    model.fit(varieties)
+    # Предсказание на единичном примере
+    predicted_label = model.predict([[7.2, 3.5, 0.8, 1.6]])
+    # Предсказание на всем наборе данных
+    # all_predictions = model.predict(iris_df.data)
+    # Выводим предсказания
+    print(predicted_label)
+    # print(all_predictions)
 
 
 def main():
-    token = '4d055480df2872b494e1781087faa01a8ff8b313565a7505937f6ac34688e9b53780081d752a381ad8373'
+    token = 'cf4ba26222fc4d42bb85d43009234463ee3314a0cad35d9f0b32848ca0de5fa0a849f89c30f2a17956e4c'
     session = vk.Session(access_token=token)  # Авторизация
     api = vk.API(session)
-    get_self_id(api)
-    get_friends_id(api)
+    # get_self_id(api)
+    # get_friends_id(api)
     # get_friends_of_friends(api)
-    # write_friends_friends_dict()
+    # write_users_dict()
     # building_graph()
-    read_friends_friends_dict()
+    k_mean()
     # for user in friends_friends_id:
     #     a = get_info(api, user)
     #     if a is not None:
-    #         write_friends_friends_info(a)
+    #         write_users_info(a)
+
+
 
 
 if __name__ == "__main__":
