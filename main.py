@@ -6,9 +6,11 @@ import matplotlib.pyplot as plt
 import datetime
 import csv
 import ast
-from sklearn import datasets
 from sklearn.cluster import KMeans
 import pandas as pd
+import numpy as np
+from csv import DictReader
+from multiprocessing import Pool
 
 self_id, friends_id, friends_friends_id, friends_friends_id_dict = None, [], [], {}
 G = nx.Graph()
@@ -20,9 +22,8 @@ def get_self_id(vk_api):
 
 
 def get_friends_id(vk_api):
-    response = vk_api.friends.get(v=5.92)
     global friends_id
-    friends_id = response.get('items')
+    friends_id = vk_api.friends.get(v=5.92)['items']
 
 
 def get_friends_of_friends(vk_api):
@@ -44,7 +45,6 @@ def get_friends_of_friends(vk_api):
 def building_graph():
     global G
     fill_graph()
-
     plt.figure(figsize=(50, 50))
     nx.draw_networkx(G, with_labels=False)
     plt.show()
@@ -80,6 +80,7 @@ def get_info(vk_api, user):
 def write_users_dict():
     with open('users_dict.csv', 'w') as csv_file:
         writer = csv.writer(csv_file)
+        writer.writerow(['Friends_id','Friends_Friends_id'])
         for key, value in friends_friends_id_dict.items():
             writer.writerow([key, value])
 
@@ -90,37 +91,44 @@ def write_users_info(friends_inf):
         writer.writerow(friends_inf)
 
 
+def fill_user_info(api):
+    write_users_info(['Id', 'Photos', 'Age', 'City_id', 'City', 'Status', 'Profile_entries'])
+    for user in friends_friends_id:
+        a = get_info(api, user)
+        if a is not None:
+            write_users_info(a)
+
+
 def fill_graph():
     global G
-    infile = csv.reader(open('users_dict.csv', 'r'))
+    infile = DictReader(open('users_dict.csv', 'r'))
     for row in infile:
-        x = ast.literal_eval(row[1])
+        x = ast.literal_eval(row['Friends_Friends_id'])
         for i in x:
-            G.add_nodes_from([row[0], i])
-            G.add_edge(row[0], i)
+            G.add_nodes_from([row['Friends_id'], i])
+            G.add_edge(row['Friends_id'], i)
 
 
 def k_mean():
-    # Загружаем набор данных
-    seeds_df = pd.read_csv(
-        "users_info.csv")
-    varieties = list(seeds_df)
-    # Описываем модель
-    model = KMeans(n_clusters=7)
-    # Проводим моделирование
-    print(varieties)
-    model.fit(varieties)
-    # Предсказание на единичном примере
-    predicted_label = model.predict([[7.2, 3.5, 0.8, 1.6]])
-    # Предсказание на всем наборе данных
-    # all_predictions = model.predict(iris_df.data)
-    # Выводим предсказания
-    print(predicted_label)
-    # print(all_predictions)
+    varieties = list()
+    with open('users_info.csv', 'r') as read_obj:
+        csv_dict_reader = DictReader(read_obj)
+        for row in csv_dict_reader:
+            if row['Age'] != '':
+                varieties.append([row['Photos'], row['Age']])
+    cluster_data = np.array(varieties)
+    plt.scatter(cluster_data[:, 0], cluster_data[:, 1], label='Some label')
+    plt.show()
+    kmeans = KMeans(n_clusters=7)
+    kmeans.fit(cluster_data)
+    print('Cluster centers: ')
+    print(kmeans.cluster_centers_)
+    plt.scatter(cluster_data[:, 0], cluster_data[:, 1], c=kmeans.labels_, cmap='rainbow')
+    plt.show()
 
 
 def main():
-    token = 'cf4ba26222fc4d42bb85d43009234463ee3314a0cad35d9f0b32848ca0de5fa0a849f89c30f2a17956e4c'
+    token = '732efd5e4b9facf23502085ff385e968ecc15ae52e1d7f2164b7e5c766b6cc9d5aedfad12fefa929423cb'
     session = vk.Session(access_token=token)  # Авторизация
     api = vk.API(session)
     # get_self_id(api)
@@ -128,14 +136,10 @@ def main():
     # get_friends_of_friends(api)
     # write_users_dict()
     # building_graph()
-    k_mean()
-    # for user in friends_friends_id:
-    #     a = get_info(api, user)
-    #     if a is not None:
-    #         write_users_info(a)
-
-
+    # fill_user_info(api)
+    # k_mean()
 
 
 if __name__ == "__main__":
     main()
+
