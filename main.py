@@ -10,10 +10,12 @@ from sklearn.cluster import KMeans
 import pandas as pd
 import numpy as np
 from csv import DictReader
+from scipy.cluster.hierarchy import dendrogram, ward, complete
 from multiprocessing import Pool
 
 self_id, friends_id, friends_friends_id, friends_friends_id_dict = None, [], [], {}
 G = nx.Graph()
+varieties = list()
 
 
 def get_self_id(vk_api):
@@ -33,10 +35,10 @@ def get_friends_of_friends(vk_api):
         try:
             resp = vk_api.friends.get(user_id=friends, v=5.92)
             friends_friends_id += resp.get('items')
-            print(friends_friends_id)
             friend_id = str(resp.get('items')).replace('[', "").replace(']', "").split(', ')
             friends_friends_id_dict[friends] = friend_id
         except VkAPIError:
+            time.sleep(0.5)
             resp = vk_api.users.get(user_ids=friends, v=5.92)
         if 'deactivated' in resp:
             continue
@@ -72,6 +74,7 @@ def get_info(vk_api, user):
         users_information.append(user_info[0]['status'])
         users_information.append(vk_api.wall.get(owner_id=user, v=5.92)['count'])
         time.sleep(1 - (time.time() - req_per_sec))
+        print(users_information)
         return users_information
     except:
         pass
@@ -95,8 +98,11 @@ def fill_user_info(api):
     write_users_info(['Id', 'Photos', 'Age', 'City_id', 'City', 'Status', 'Profile_entries'])
     for user in friends_friends_id:
         a = get_info(api, user)
-        if a is not None:
-            write_users_info(a)
+        try:
+            if a is not None:
+                write_users_info(a)
+        except:
+            pass
 
 
 def fill_graph():
@@ -109,26 +115,33 @@ def fill_graph():
             G.add_edge(row['Friends_id'], i)
 
 
-def k_mean():
-    varieties = list()
+def fill_cluster():
+    global varieties
     with open('users_info.csv', 'r') as read_obj:
         csv_dict_reader = DictReader(read_obj)
         for row in csv_dict_reader:
-            if row['Age'] != '':
-                varieties.append([row['Photos'], row['Age']])
+            if row['Age'] != '' and row['City'] != '' and row['City_id'] != '':
+                try:
+                    varieties.append([int(row['Photos']), int(row['Age'])])
+                except:
+                    pass
+
+
+def k_mean():
     cluster_data = np.array(varieties)
-    plt.scatter(cluster_data[:, 0], cluster_data[:, 1], label='Some label')
+    plt.scatter(cluster_data[:, 0], cluster_data[:, 1], s = 15, cmap = 'summer')
     plt.show()
     kmeans = KMeans(n_clusters=7)
     kmeans.fit(cluster_data)
-    print('Cluster centers: ')
-    print(kmeans.cluster_centers_)
-    plt.scatter(cluster_data[:, 0], cluster_data[:, 1], c=kmeans.labels_, cmap='rainbow')
+    y_kmeans = kmeans.predict(cluster_data)
+    plt.scatter(cluster_data[:, 0], cluster_data[:, 1], c=y_kmeans, s=20, cmap='summer')
+    centers = kmeans.cluster_centers_
+    plt.scatter(centers[:, 0], centers[:, 1], c='blue', s=100, alpha=0.9);
     plt.show()
 
 
 def main():
-    token = '732efd5e4b9facf23502085ff385e968ecc15ae52e1d7f2164b7e5c766b6cc9d5aedfad12fefa929423cb'
+    token = 'ae27ac0014e9212b3779574bbb1039b92a57bec8d06b2523231c56676582f96243d1b7d97455840b60719'
     session = vk.Session(access_token=token)  # Авторизация
     api = vk.API(session)
     # get_self_id(api)
@@ -138,6 +151,8 @@ def main():
     # building_graph()
     # fill_user_info(api)
     # k_mean()
+    fill_cluster()
+    k_mean()
 
 
 if __name__ == "__main__":

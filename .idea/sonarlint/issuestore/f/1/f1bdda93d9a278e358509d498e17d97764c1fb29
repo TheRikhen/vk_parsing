@@ -1,5 +1,8 @@
 
-Lpython:S1481k"-Remove the unused local variable "varieties".(šñœ8ÒÈ²ÉÈ.
-Bpython:S125}"Remove this commented out code.(÷–ÆÙüÿÿÿÿ8Öö´ÎÈ.
-Fpython:S1481|"'Remove the unused local variable "api".(²çÁ®8Öö´ÎÈ.
->python:S125‚"Remove this commented out code.(å”…ˆ8¢çÖÉÈ.
+[python:S5754G"<Specify an exception class to catch or reraise the exception(ˆÊÉ·8Ç´‹´Í.
+[python:S5754h"<Specify an exception class to catch or reraise the exception(ˆÊÉ·8™çŸåÜ.
+[python:S5754O"<Specify an exception class to catch or reraise the exception(ˆÊÉ·8Ç´‹´Í.
+[python:S5754B"<Specify an exception class to catch or reraise the exception(ˆÊÉ·8Ç´‹´Í.
+Cpython:S125­"Remove this commented out code.(÷–ÆÙüÿÿÿÿ8êİèÜ.
+python:S1542‹"ZRename function "get_clusters_Ward" to match the regular expression ^[a-z_][a-z0-9_]{2,}$.(ÊÔáúùÿÿÿÿ8ĞäÔÅÑ.
+Gpython:S1481¬"'Remove the unused local variable "api".(²çÁ®8êİèÜ.
